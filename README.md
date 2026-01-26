@@ -30,8 +30,9 @@ $ bookmark-site-gen [options] <bookmarks.json>
 | Option | Default | Description |
 |--------|---------|-------------|
 | `-output` | `public` | Output directory |
-| `-timeout` | `30s` | Screenshot capture timeout |
+| `-timeout` | `10s` | Screenshot capture timeout |
 | `-dry-run` | false | Show changes without applying |
+| `-no-sandbox` | false | Disable Chrome sandbox (for CI environments) |
 
 ### Example
 

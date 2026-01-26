@@ -9,9 +9,10 @@ import (
 
 func main() {
 	var (
-		output  = flag.String("output", "public", "output directory")
-		timeout = flag.Duration("timeout", 10*time.Second, "screenshot timeout")
-		dryRun  = flag.Bool("dry-run", false, "show changes without applying")
+		output    = flag.String("output", "public", "output directory")
+		timeout   = flag.Duration("timeout", 10*time.Second, "screenshot timeout")
+		dryRun    = flag.Bool("dry-run", false, "show changes without applying")
+		noSandbox = flag.Bool("no-sandbox", false, "disable Chrome sandbox (for CI environments)")
 	)
 
 	flag.Usage = func() {
@@ -39,6 +40,7 @@ func main() {
 		OutputDir: *output,
 		Timeout:   *timeout,
 		DryRun:    *dryRun,
+		NoSandbox: *noSandbox,
 	}
 
 	if err := gen.Run(bookmarks); err != nil {

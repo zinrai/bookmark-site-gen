@@ -18,8 +18,16 @@ const (
 	outputHeight   = 250
 )
 
-func CaptureScreenshot(url string, timeout time.Duration) ([]byte, error) {
-	ctx, cancel := chromedp.NewContext(context.Background())
+func CaptureScreenshot(url string, timeout time.Duration, noSandbox bool) ([]byte, error) {
+	opts := chromedp.DefaultExecAllocatorOptions[:]
+	if noSandbox {
+		opts = append(opts, chromedp.NoSandbox)
+	}
+
+	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer allocCancel()
+
+	ctx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
 	ctx, cancel = context.WithTimeout(ctx, timeout)

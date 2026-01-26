@@ -13,6 +13,7 @@ type Generator struct {
 	OutputDir string
 	Timeout   time.Duration
 	DryRun    bool
+	NoSandbox bool
 }
 
 func (g *Generator) Run(bookmarks []Bookmark) error {
@@ -81,7 +82,7 @@ func (g *Generator) createThumbnails(dir string, hashes []string, expected map[s
 		}
 
 		fmt.Printf("Capturing: %s\n", b.URL)
-		screenshot, err := CaptureScreenshot(b.URL, g.Timeout)
+		screenshot, err := CaptureScreenshot(b.URL, g.Timeout, g.NoSandbox)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to capture %s: %v\n", b.URL, err)
 			continue
