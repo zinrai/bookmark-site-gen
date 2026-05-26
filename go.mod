@@ -4,7 +4,7 @@ go 1.26
 
 require (
 	github.com/chromedp/chromedp v0.15.1
-	golang.org/x/image v0.40.0
+	golang.org/x/image v0.41.0
 )
 
 require (
