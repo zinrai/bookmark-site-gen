@@ -9,10 +9,11 @@ import (
 
 func main() {
 	var (
-		output    = flag.String("output", "public", "output directory")
-		timeout   = flag.Duration("timeout", 10*time.Second, "screenshot timeout")
-		dryRun    = flag.Bool("dry-run", false, "show changes without applying")
-		noSandbox = flag.Bool("no-sandbox", false, "disable Chrome sandbox (for CI environments)")
+		output      = flag.String("output", "public", "output directory")
+		timeout     = flag.Duration("timeout", 10*time.Second, "screenshot timeout")
+		dryRun      = flag.Bool("dry-run", false, "show changes without applying")
+		noSandbox   = flag.Bool("no-sandbox", false, "disable Chrome sandbox (for CI environments)")
+		showVersion = flag.Bool("version", false, "Print version information and exit")
 	)
 
 	flag.Usage = func() {
@@ -22,6 +23,11 @@ func main() {
 	}
 
 	flag.Parse()
+
+	if *showVersion {
+		printVersion()
+		os.Exit(0)
+	}
 
 	if flag.NArg() != 1 {
 		flag.Usage()
