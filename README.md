@@ -13,12 +13,6 @@ A static site generator that creates a thumbnail gallery from a list of bookmark
 
 Chrome or Chromium
 
-## Installation
-
-```bash
-$ go install github.com/zinrai/bookmark-site-gen@latest
-```
-
 ## Usage
 
 ```bash
