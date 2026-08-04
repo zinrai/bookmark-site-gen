@@ -14,11 +14,6 @@ import (
 )
 
 const (
-	viewportWidth  = 1280
-	viewportHeight = 800
-	outputWidth    = 400
-	outputHeight   = 250
-
 	// Held back from the timeout so that a page which never goes idle still
 	// produces an image instead of a deadline error.
 	captureReserve = 3 * time.Second
@@ -30,45 +25,69 @@ const (
 	graceDivisor = 10
 )
 
-func CaptureScreenshot(url string, timeout time.Duration, noSandbox bool) ([]byte, error) {
-	opts := chromedp.DefaultExecAllocatorOptions[:]
-	if noSandbox {
-		opts = append(opts, chromedp.NoSandbox)
+type Size struct {
+	Width  int
+	Height int
+}
+
+type Options struct {
+	Timeout   time.Duration
+	Viewport  Size
+	Resize    Size
+	NoSandbox bool
+}
+
+// Capture reports whether the page settled within the timeout. An unsettled
+// page still yields an image, taken at the moment the budget ran out.
+func Capture(url string, opts Options) ([]byte, bool, error) {
+	execOpts := chromedp.DefaultExecAllocatorOptions[:]
+	if opts.NoSandbox {
+		execOpts = append(execOpts, chromedp.NoSandbox)
 	}
 
-	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), execOpts...)
 	defer allocCancel()
 
 	ctx, cancel := chromedp.NewContext(allocCtx)
 	defer cancel()
 
-	ctx, cancel = context.WithTimeout(ctx, timeout)
+	ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
 	defer cancel()
 
 	watcher := watchLifecycle(ctx)
 
+	settled := false
 	var buf []byte
 	err := chromedp.Run(ctx,
-		chromedp.EmulateViewport(viewportWidth, viewportHeight),
+		chromedp.EmulateViewport(int64(opts.Viewport.Width), int64(opts.Viewport.Height)),
 		page.SetLifecycleEventsEnabled(true),
 		chromedp.Navigate(url),
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			deadline, _ := ctx.Deadline()
-			watcher.wait(time.Until(deadline)-captureReserve, timeout/graceDivisor)
+			settled = watcher.wait(time.Until(deadline)-captureReserve, opts.Timeout/graceDivisor)
 			return nil
 		}),
 		chromedp.CaptureScreenshot(&buf),
 	)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return resizeImage(buf)
+	if opts.Resize == (Size{}) {
+		return buf, settled, nil
+	}
+
+	out, err := resizeImage(buf, opts.Resize)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return out, settled, nil
 }
 
 // lifecycleWatcher follows the page across client side redirects. Navigate
 // returns on the load event of the first document, which for a site behind an
-// interstitial is the interstitial and not the page worth a thumbnail.
+// interstitial is the interstitial and not the page worth capturing.
 type lifecycleWatcher struct {
 	mu      sync.Mutex
 	idle    bool
@@ -105,10 +124,11 @@ func watchLifecycle(ctx context.Context) *lifecycleWatcher {
 }
 
 // wait blocks until the page has stayed network idle for grace without
-// starting another document, or until budget runs out. The bound is a timer
-// rather than a context deadline, because expiring a context derived from the
-// chromedp one takes the target down and the capture with it.
-func (w *lifecycleWatcher) wait(budget, grace time.Duration) {
+// starting another document, and reports whether that happened before budget
+// ran out. The bound is a timer rather than a context deadline, because
+// expiring a context derived from the chromedp one takes the target down and
+// the capture with it.
+func (w *lifecycleWatcher) wait(budget, grace time.Duration) bool {
 	expired := time.NewTimer(budget)
 	defer expired.Stop()
 
@@ -122,13 +142,13 @@ func (w *lifecycleWatcher) wait(budget, grace time.Duration) {
 			case <-w.changed:
 				continue
 			case <-expired.C:
-				return
+				return false
 			}
 		}
 
 		remaining := grace - time.Since(idleAt)
 		if remaining <= 0 {
-			return
+			return true
 		}
 
 		settle := time.NewTimer(remaining)
@@ -137,19 +157,19 @@ func (w *lifecycleWatcher) wait(budget, grace time.Duration) {
 		case <-settle.C:
 		case <-expired.C:
 			settle.Stop()
-			return
+			return false
 		}
 		settle.Stop()
 	}
 }
 
-func resizeImage(data []byte) ([]byte, error) {
+func resizeImage(data []byte, size Size) ([]byte, error) {
 	src, err := png.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
 
-	dst := image.NewRGBA(image.Rect(0, 0, outputWidth, outputHeight))
+	dst := image.NewRGBA(image.Rect(0, 0, size.Width, size.Height))
 	draw.CatmullRom.Scale(dst, dst.Bounds(), src, src.Bounds(), draw.Over, nil)
 
 	var out bytes.Buffer

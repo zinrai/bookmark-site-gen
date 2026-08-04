@@ -1,13 +1,13 @@
-# bookmark-site-gen
+# pageshot
 
-A static site generator that creates a thumbnail gallery from a list of bookmarked URLs.
+Captures a screenshot of a single web page.
 
 ## Features
 
-- Generates screenshot thumbnails for each bookmarked URL
-- Produces a single `index.html` with a responsive grid layout
-- Idempotent operation: only creates new thumbnails and removes orphaned ones
-- JSON input format
+- Waits for the page to stop loading before capturing, so a site that redirects through an interstitial is captured after the redirect
+- Reports through the exit status whether the page settled within the time budget
+- Leaves an existing output file alone unless asked to replace it
+- Optional downscaling of the capture
 
 ## Requirements
 
@@ -16,64 +16,49 @@ Chrome or Chromium
 ## Usage
 
 ```bash
-$ bookmark-site-gen [options] <bookmarks.json>
+$ pageshot [options] <url>
 ```
 
 ### Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `-output` | `public` | Output directory |
-| `-timeout` | `10s` | Time budget per URL, including the wait for the page to settle |
-| `-dry-run` | false | Show changes without applying |
+| `-output` | | Output PNG path (required) |
+| `-force` | false | Capture even if the output file already exists |
+| `-timeout` | `10s` | Time budget for the page to settle |
+| `-viewport` | `1280x800` | Browser viewport as `WIDTHxHEIGHT` |
+| `-size` | | Resize the capture to `WIDTHxHEIGHT` |
 | `-no-sandbox` | false | Disable Chrome sandbox (for CI environments) |
 
-A thumbnail is taken once the page stops loading, so a site that redirects through an interstitial is captured after the redirect. If a thumbnail looks unfinished, raise `-timeout`.
+### Exit Status
+
+| Code | Meaning |
+|------|---------|
+| 0 | Captured, or skipped because the output already exists |
+| 1 | Failed |
+| 2 | Captured before the page settled |
+
+An exit status of 2 means the image is of a page that was still loading. Capture it again with a larger `-timeout` and `-force`.
 
 ### Example
 
-Basic usage
+Capture a page at the browser viewport size
 
 ```bash
-$ bookmark-site-gen bookmarks.json
+$ pageshot -output page.png https://example.com/
 ```
 
-Specify output directory
+Capture a thumbnail
 
 ```bash
-$ bookmark-site-gen -output dist bookmarks.json
+$ pageshot -output thumbnail.png -size 400x250 https://example.com/
 ```
 
-Preview changes without execution
+Replace an existing capture, giving a slow page more time
 
 ```bash
-$ bookmark-site-gen -dry-run bookmarks.json
+$ pageshot -output page.png -force -timeout 30s https://example.com/
 ```
-
-## Input Format
-
-`bookmarks.json` is a array of URLs:
-
-```json
-[
-  "https://example.com/article1",
-  "https://example.com/article2",
-  "https://example.org/tool"
-]
-```
-
-## Output
-
-```
-public/
-├── index.html
-└── thumbnails/
-    ├── a1b2c3d4....png
-    ├── b2c3d4e5....png
-    └── c3d4e5f6....png
-```
-
-Thumbnail filenames are SHA-256 hashes of the URLs, ensuring idempotent operation.
 
 ## License
 

@@ -9,5 +9,5 @@ var (
 )
 
 func printVersion() {
-	fmt.Printf("bookmark-site-gen %s (commit %s, built %s)\n", version, commit, date)
+	fmt.Printf("pageshot %s (commit %s, built %s)\n", version, commit, date)
 }

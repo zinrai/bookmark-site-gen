@@ -1,4 +1,4 @@
-module github.com/zinrai/bookmark-site-gen
+module github.com/zinrai/pageshot
 
 go 1.26
 
