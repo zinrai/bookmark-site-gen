@@ -10,7 +10,7 @@ import (
 func main() {
 	var (
 		output      = flag.String("output", "public", "output directory")
-		timeout     = flag.Duration("timeout", 10*time.Second, "screenshot timeout")
+		timeout     = flag.Duration("timeout", 10*time.Second, "time budget per URL, including the wait for the page to settle")
 		dryRun      = flag.Bool("dry-run", false, "show changes without applying")
 		noSandbox   = flag.Bool("no-sandbox", false, "disable Chrome sandbox (for CI environments)")
 		showVersion = flag.Bool("version", false, "Print version information and exit")

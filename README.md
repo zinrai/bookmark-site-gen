@@ -24,9 +24,11 @@ $ bookmark-site-gen [options] <bookmarks.json>
 | Option | Default | Description |
 |--------|---------|-------------|
 | `-output` | `public` | Output directory |
-| `-timeout` | `10s` | Screenshot capture timeout |
+| `-timeout` | `10s` | Time budget per URL, including the wait for the page to settle |
 | `-dry-run` | false | Show changes without applying |
 | `-no-sandbox` | false | Disable Chrome sandbox (for CI environments) |
+
+A thumbnail is taken once the page stops loading, so a site that redirects through an interstitial is captured after the redirect. If a thumbnail looks unfinished, raise `-timeout`.
 
 ### Example
 
